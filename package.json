@@ -8,9 +8,16 @@
     "react-scripts": "1.0.10"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build-css": "node-sass --precision 10 src/ -o src/ --include-path src/",
+    "watch-css": "npm run build-css && node-sass --precision 10 src/ -o src/ --include-path src/ --watch --recursive",
+    "start-react-scripts": "export NODE_PATH=src/ && react-scripts start",
+    "start": "npm-run-all -p watch-css start-react-scripts",
+    "build": "export NODE_PATH=src/ && npm run build-css && react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "node-sass": "^4.5.3",
+    "npm-run-all": "^4.0.2"
   }
 }
