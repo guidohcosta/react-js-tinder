@@ -1,1 +1,1 @@
-# react-js-tinder
+# Aplicativo React para a materia de Sistemas Orientados a Objeto
