@@ -7,10 +7,10 @@ class App extends Component {
   constructor() {
     super()
     this.state = {
-      user: null,
+      user: localStorage.getItem('user'),
       conversations: [],
-			currentChat: 14
     }
+    this.logUserIn = this.logUserIn.bind(this)
   }
 
   componentDidMount() {
@@ -20,7 +20,7 @@ class App extends Component {
   }
 
   callApi = async () => {
-    const response = await fetch('http://192.168.0.3:8080/TrabalhoSOO/webresources/relacionador/buscarPessoas/13')
+    const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/relacionador/buscarMatchs/110')
     const body = await response.json()
     if (response.status !== 200) {
       throw Error(body.mensagem)
@@ -29,13 +29,110 @@ class App extends Component {
     return body.usuarios
   }
 
+  async logUserIn(user, password) {
+		const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/login/logar', {
+			method: 'post',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({login: user, senha: password})
+		})
+    const json = await response.json()
+
+    if (json.sucesso) {
+      localStorage.setItem('user', json.id)
+      this.setState({user: json.id})
+    }
+  }
+
+  render() {
+    if (this.state.user == null) {
+      return (
+        <Login logUserIn={this.logUserIn} />
+      )
+    } else {
+      return (
+        <MyTinder
+          conversations={this.state.conversations}
+          user={this.state.user}
+        />
+      )
+    }
+  }
+}
+
+class Login extends Component {
+  constructor() {
+    super()
+    this.handleSubmit = this.handleSubmit.bind(this)
+    this.handleUserChange = this.handleUserChange.bind(this)
+    this.handlePasswordChange = this.handlePasswordChange.bind(this)
+    this.state = {
+      user: '',
+      password: ''
+    }
+  }
+  
+  handlePasswordChange(e) {
+    this.setState({password: e.target.value})
+  }
+
+  handleUserChange(e) {
+    this.setState({user: e.target.value})
+  }
+
+  handleSubmit(e) {
+    e.preventDefault()
+    this.props.logUserIn(this.state.user, this.state.password)
+    this.setState({
+      user: '',
+      password: ''
+    })
+  }
+
   render() {
     return (
-			<MyTinder
-			  conversations={this.state.conversations}
-				currentChat={this.state.currentChat}
-			/>
-		)
+      <div className="container">
+        <div className="row">
+          <div className="col-md-6 col-md-offset-3">
+            <div className="panel panel-login">
+              <div className="panel-heading">
+                <h3>Login</h3>
+              </div>
+            </div>
+            <div className="panel-body">
+              <div className="row">
+                <form onSubmit={this.handleSubmit}>
+                  <div className="form-group">
+                    <input
+                      onChange={this.handleUserChange}
+                      type="text"
+                      placeholder="Login"
+                      className="form-control"
+                      name="login"
+                      value={this.state.user}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input
+                      onChange={this.handlePasswordChange}
+                      type="password"
+                      placeholder="Senha"
+                      className="form-control"
+                      name="password"
+                      value={this.state.password}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input type="submit" className="form-control btn" value="Log in" />
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 }
 
@@ -122,7 +219,6 @@ class Conversation extends Component {
   constructor() {
     super()
     this.state = {
-      user: null,
       messages: []
     }
 		this.sendMessage = this.sendMessage.bind(this)
@@ -135,38 +231,56 @@ class Conversation extends Component {
       .catch(err => console.log(err))
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.conversation != '' && prevProps.conversation != this.props.conversation) {
+      this.callApi()
+        .then(res => this.setState({messages: res}))
+        .catch(err => console.log(err))
+    }
+  }
+
   callApi = async () => {
-    const response = await fetch('http://192.168.0.3:8080/TrabalhoSOO/webresources/chat/buscarConversas/', {
+    const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/chat/buscarConversas/', {
       method: 'post',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({idMatch: '12'})
+      body: JSON.stringify({idMatch: this.props.conversation})
     })
     const body = await response.json()
     if (response.status !== 200) {
       throw Error(body.mensagem)
     }
+    console.log(body)
 
     return body.mensagens
   }
 
   sendChat = async (text) => {
-		const response = await fetch('http://192.168.0.3:8080/TrabalhoSOO/webresources/chat/inserirConversa', {
+		const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/chat/inserirConversa', {
 			method: 'post',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({idUsuarioMatch: '12', idUsuario: '103', mensagem: text})
+			body: JSON.stringify({idUsuarioMatch: '17', idUsuario: '110', mensagem: text})
 		})
 		const body = await response.json()
 
 		return body
 	}
 	
-	sendMessage(text) {
-		this.sendChat(text)
-		this.updateMessages(text)
+	async sendMessage(text) {
+		const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/chat/inserirConversa', {
+			method: 'post',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({idUsuarioMatch: '17', idUsuario: '110', mensagem: text})
+		})
+    const json = await response.json()
+		this.setState({
+      messages: [...this.state.messages, {mensagem:text}]
+		})
 	}
 
 	updateMessages(text) {
@@ -177,7 +291,7 @@ class Conversation extends Component {
 
   render() {
     return (
-      <div className="conversation">
+      <div className="conversation" data-conversation={this.props.conversation}>
         <ConversationData />
         <MessageList messages={this.state.messages} />
         <SendMessageForm sendMessage={this.sendMessage} />
@@ -192,7 +306,10 @@ class ConversationList extends Component {
       <ul className="list-group">
         {this.props.conversations.map(conversation => {
           return (
-            <li key={conversation.id} className="list-group-item">
+            <li 
+              onClick={this.props.handleClick}
+              data-id={conversation.idMatch}
+              key={conversation.idMatch} className="list-group-item">
               <div className="row">
                 <div className="col-md-2">
                   <img
@@ -227,6 +344,16 @@ class FindBanner extends Component {
 class MyTinder extends Component {
   constructor() {
     super()
+    this.handleConversationClick = this.handleConversationClick.bind(this)
+    this.state = {
+      conversation: ''
+    }
+  }
+
+  handleConversationClick(e) {
+    this.setState({
+      conversation: e.currentTarget.dataset.id
+    })
   }
 
   render() {
@@ -235,11 +362,136 @@ class MyTinder extends Component {
         <div className="row">
           <div className="col-md-3">
             <FindBanner />
-            <ConversationList conversations={this.props.conversations} />
+            <ConversationList
+              conversations={this.props.conversations}
+              handleClick={this.handleConversationClick}
+            />
           </div>
           <div className="col-md-9">
-            <Conversation />
+            <Conversation conversation={this.state.conversation} />
+            <MatchList user={this.props.user} />
           </div>
+        </div>
+      </div>
+    )
+  }
+}
+
+class MatchList extends Component {
+  constructor() {
+    super()
+    this.state = {
+      matches: [],
+      update: false
+    }
+    this.handleLike = this.handleLike.bind(this)
+    this.handleDislike = this.handleDislike.bind(this)
+  }
+
+  componentDidMount() {
+    this.callApi()
+      .then(res => this.setState({
+        matches: res,
+        update: false
+      }))
+      .catch(err => console.log(err))
+  }
+
+  componentDidUpdate() {
+    if (this.state.update) {
+      this.callApi()
+        .then(res => this.setState({matches: res}))
+        .catch(err => console.log(err))
+    }
+  }
+
+  callApi = async () => {
+    const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/relacionador/buscarPessoas/110')
+    const body = await response.json()
+    if (response.status !== 200) {
+      throw Error(body.mensagem)
+    }
+
+    return body.usuarios
+  }
+
+  async handleLike(e) {
+		const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/relacionador/relacionar', {
+			method: 'post',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+      body: JSON.stringify({idUsuarioSolicitante: this.props.user, idUsuarioAlvo: e.currentTarget.dataset.id, acao: '1'})
+		})
+    const json = await response.json()
+		this.setState({
+      update: true
+		})
+  }
+
+  async handleDislike(e) {
+		const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/relacionador/relacionar', {
+			method: 'post',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+      body: JSON.stringify({idUsuarioSolicitante: this.props.user, idUsuarioAlvo: e.currentTarget.dataset.id, acao: '0'})
+		})
+    const json = await response.json()
+		this.setState({
+      update: true
+		})
+  }
+
+  render() {
+    return (
+      <div className="match">
+        <div className="container">
+          <div className="row">
+            <div className="col-md-6 col-md-offset-3 match-list">
+              {this.state.matches.map(match => {
+                return (
+                  <Match 
+                    data={match} 
+                    key={match.id}
+                    handleLike={this.handleLike}
+                    handleDislike={this.handleDislike}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+}
+
+class Match extends Component {
+  render() {
+    return (
+      <div className="card">
+        <div className="center-block">
+          <img
+            src={this.props.data.linkImagem}
+            className="img-circle center-block"
+            width="200"
+          />
+        </div>
+        <p className="description">o match é aqui</p>
+        <div className="row buttons">
+          <button
+            className="btn btn-success"
+            data-id={this.props.data.id}
+            onClick={this.props.handleLike}>
+            <span className="glyphicon glyphicon-ok" aria-hidden="true">Gostei</span>
+          </button>
+          <button
+            data-id={this.props.data.id}
+            onClick={this.props.handleDislike}
+            className="btn btn-danger ">
+            <span className="glyphicon glyphicon-remove" aria-hidden="true">Odiei</span>
+          </button>
         </div>
       </div>
     )
