@@ -71,7 +71,7 @@ class App extends Component {
 
     if (this.state.edit) {
       return (
-        <Edit user={this.state.user} cancel={this.cancelEdit} />
+        <EditUserForm user={this.state.user} cancel={this.cancelEdit} />
       )
     }
 
@@ -100,10 +100,33 @@ class App extends Component {
   }
 }
 
-class Edit extends Component {
+class EditUserForm extends Component {
   constructor() {
     super()
     this.sendUser = this.sendUser.bind(this)
+  }
+
+  componentDidMount() {
+    this.callApi()
+      .then(res => this.setState({conversations: res}))
+      .catch(err => console.log(err))
+  }
+
+  callApi = async () => {
+    const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/chat/buscarConversas/', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({login: this.props.conversation})
+    })
+    const body = await response.json()
+    if (response.status !== 200) {
+      throw Error(body.mensagem)
+    }
+    console.log(body)
+
+    return body.mensagens
   }
 
   sendUser(user) {
@@ -134,7 +157,7 @@ class Edit extends Component {
   }
 }
 
-class UserForm extends Component {
+class CreateUserForm extends Component {
   constructor() {
     super()
     this.sendUser = this.sendUser.bind(this)
@@ -157,12 +180,31 @@ class UserForm extends Component {
       body: JSON.stringify(user)
 		})
     const json = await response.json()
-    this.props.handleSubmit()
+    console.log(json)
+    this.props.handleCancel()
   }
 
   render() {
+    var user = {
+      name: '',
+      senha: '',
+      login: '',
+      descricao: '',
+      linkImagem: ''
+    }
     return (
-      <form onSubmit={this.sendUser}>
+      <UserForm 
+        sendUser={this.sendUser}
+        handleCancel={this.props.handleCancel}
+      />
+    )
+  }
+}
+
+class UserForm extends Component {
+  render() {
+    return (
+      <form onSubmit={this.props.sendUser}>
         <div className="form-group">
           <label for="nome">Nome</label>
           <input type="text" className="form-control" id="nome" placeholder="Nome" />
@@ -186,6 +228,9 @@ class UserForm extends Component {
         </div>
         <div className="form-group">
           <input type="submit" className="form-control btn" value="Salvar" />
+        </div>
+        <div className="form-group" onClick={this.props.handleCancel}>
+          <input type="button" className="form-control btn" value="Cancelar" />
         </div>
       </form>
     )
@@ -240,7 +285,7 @@ class Login extends Component {
     if (this.state.register) {
       return (
         <div className="container">
-          <UserForm handleSubmit={this.noRegister}/>
+          <CreateUserForm handleCancel={this.noRegister} />
         </div>
       )
     }
@@ -297,8 +342,13 @@ class MessageList extends Component {
         <div className="message-list list-group">
           {this.props.messages.map(function(message, index) {
             return (
-              <div className="list-item" key={index}>
-                {message.mensagem}
+              <div className="list-item media" key={index}>
+                <div className="media-body">
+                  <h5 className="media-heading">
+                    <strong>{message.nome}</strong>
+                  </h5>
+                  <p>{message.mensagem}</p>
+                </div>
               </div>
             )
           })}
@@ -337,12 +387,15 @@ class SendMessageForm extends Component {
       <form
 				onSubmit={this.handleSubmit}
 				className="send-message-form">
-        <input
-          onChange={this.handleChange}
-          value={this.state.message}
-					type="text"
-					placeholder="Type here"
-				/>
+        <div className="form-group">
+          <input
+            onChange={this.handleChange}
+            value={this.state.message}
+            type="text"
+            placeholder="Type here"
+            className="form-control"
+          />
+        </div>
       </form>
     )
   }
@@ -356,12 +409,12 @@ class ConversationData extends Component {
           <div className="col-md-1">
             <img
               src={this.props.image}
-              className="img-circle"
+              className="img-circle center-block"
               width="51"
             />
           </div>
           <div className="col-md-11">
-            { "Conversa com " + this.props.name }
+            <h1 className="text-center">{ "Conversa com " + this.props.name }</h1>
           </div>
         </div>
       </nav>
@@ -405,7 +458,6 @@ class Conversation extends Component {
     if (response.status !== 200) {
       throw Error(body.mensagem)
     }
-    console.log(body)
 
     return body.mensagens
   }
@@ -447,7 +499,7 @@ class Conversation extends Component {
     return (
       <div className="conversation" data-conversation={this.props.conversation}>
         <ConversationData name={this.props.name} image={this.props.image} />
-        <MessageList messages={this.state.messages} />
+        <MessageList user={this.props.user} messages={this.state.messages} />
         <SendMessageForm sendMessage={this.sendMessage} />
       </div>
     )
@@ -681,24 +733,28 @@ class Match extends Component {
         <div className="center-block">
           <img
             src={this.props.data.linkImagem}
-            className="img-circle center-block"
+            className="img-rounded center-block"
             width="200"
           />
         </div>
-        <p className="description">o match é aqui</p>
+        <p className="description text-center">{this.props.data.descricao}</p>
         <div className="row buttons">
-          <button
-            className="btn btn-success"
-            data-id={this.props.data.id}
-            onClick={this.props.handleLike}>
-            <span className="glyphicon glyphicon-ok" aria-hidden="true">Gostei</span>
-          </button>
-          <button
-            data-id={this.props.data.id}
-            onClick={this.props.handleDislike}
-            className="btn btn-danger ">
-            <span className="glyphicon glyphicon-remove" aria-hidden="true">Odiei</span>
-          </button>
+          <div className="col-md-6">
+            <button
+              className="btn btn-success center-block"
+              data-id={this.props.data.id}
+              onClick={this.props.handleLike}>
+              <span className="glyphicon glyphicon-ok" aria-hidden="true">Gostei</span>
+            </button>
+          </div>
+          <div className="col-md-6">
+            <button
+              data-id={this.props.data.id}
+              onClick={this.props.handleDislike}
+              className="btn btn-danger center-block">
+              <span className="glyphicon glyphicon-remove" aria-hidden="true">Odiei</span>
+            </button>
+          </div>
         </div>
       </div>
     )
