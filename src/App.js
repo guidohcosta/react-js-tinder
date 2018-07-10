@@ -737,7 +737,7 @@ class MatchList extends Component {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-      body: JSON.stringify({idUsuarioSolicitante: this.props.user.toString(), idUsuarioAlvo: e.currentTarget.dataset.id, acao: '1'})
+      body: JSON.stringify({idUsuarioSolicitante: this.props.user.toString(), idUsuarioAlvo: e.currentTarget.dataset.id, acao: true})
 		})
     const json = await response.json()
 		this.setState({
@@ -751,7 +751,7 @@ class MatchList extends Component {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-      body: JSON.stringify({idUsuarioSolicitante: this.props.user.toString(), idUsuarioAlvo: e.currentTarget.dataset.id, acao: '0'})
+      body: JSON.stringify({idUsuarioSolicitante: this.props.user.toString(), idUsuarioAlvo: e.currentTarget.dataset.id, acao: false})
 		})
     const json = await response.json()
 		this.setState({
