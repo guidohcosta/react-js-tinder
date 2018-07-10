@@ -104,32 +104,52 @@ class EditUserForm extends Component {
   constructor() {
     super()
     this.sendUser = this.sendUser.bind(this)
+    this.state = {
+      user: ''
+    }
   }
 
   componentDidMount() {
     this.callApi()
-      .then(res => this.setState({conversations: res}))
+      .then(res => this.setState({user: res}))
       .catch(err => console.log(err))
   }
 
   callApi = async () => {
-    const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/chat/buscarConversas/', {
-      method: 'post',
+    const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/login/buscar/' + this.props.user, {
+      method: 'get',
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({login: this.props.conversation})
+      }
     })
     const body = await response.json()
     if (response.status !== 200) {
       throw Error(body.mensagem)
     }
-    console.log(body)
 
-    return body.mensagens
+    return body
   }
 
-  sendUser(user) {
+  async sendUser(e) {
+    e.preventDefault()
+    var user = {
+      id: this.state.user.id,
+      nome: document.getElementById("nome").value,
+      senha: document.getElementById("senha").value,
+      login: document.getElementById("login").value,
+      descricao: document.getElementById("descricao").value,
+      linkImagem: document.getElementById("linkImagem").value
+    }
+		const response = await fetch('http://localhost:8080/TrabalhoSOO/webresources/login/alterar', {
+			method: 'post',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+      body: JSON.stringify(user)
+		})
+    const json = await response.json()
+
+    this.props.cancel()
   }
 
   render() {
@@ -150,7 +170,7 @@ class EditUserForm extends Component {
           </div>
         </nav>
         <div className="container">
-          <UserForm />
+          <UserForm handleCancel={this.props.cancel} sendUser={this.sendUser} user={this.state.user} />
         </div>
       </div>
     )
@@ -186,7 +206,7 @@ class CreateUserForm extends Component {
 
   render() {
     var user = {
-      name: '',
+      nome: '',
       senha: '',
       login: '',
       descricao: '',
@@ -194,6 +214,7 @@ class CreateUserForm extends Component {
     }
     return (
       <UserForm 
+        user={user}
         sendUser={this.sendUser}
         handleCancel={this.props.handleCancel}
       />
@@ -202,28 +223,72 @@ class CreateUserForm extends Component {
 }
 
 class UserForm extends Component {
+  constructor() {
+    super()
+    this.handleNome = this.handleNome.bind(this)
+    this.handleSenha = this.handleSenha.bind(this)
+    this.handleLogin = this.handleLogin.bind(this)
+    this.handleDescricao = this.handleDescricao.bind(this)
+    this.handleLinkImagem = this.handleLinkImagem.bind(this)
+    this.state = {
+      nome: '',
+      senha: '',
+      login: '',
+      descricao: '',
+      linkImagem: '',
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.user.nome !== this.props.user.nome) {
+      this.setState({
+        nome: this.props.user.nome,
+        senha: this.props.user.senha,
+        login: this.props.user.login,
+        descricao: this.props.user.descricao,
+        linkImagem: this.props.user.linkImagem,
+      })
+    }
+  }
+
+  handleNome(e) {
+    this.setState({nome: e.target.value})
+  }
+  handleSenha(e) {
+    this.setState({senha: e.target.value})
+  }
+  handleDescricao(e) {
+    this.setState({descricao: e.target.value})
+  }
+  handleLogin(e) {
+    this.setState({login: e.target.value})
+  }
+  handleLinkImagem(e) {
+    this.setState({linkImagem: e.target.value})
+  }
+
   render() {
     return (
       <form onSubmit={this.props.sendUser}>
         <div className="form-group">
-          <label for="nome">Nome</label>
-          <input type="text" className="form-control" id="nome" placeholder="Nome" />
+          <label htmlFor="nome">Nome</label>
+          <input value={this.state.nome} onChange={this.handleNome} type="text" className="form-control" id="nome" placeholder="Nome" />
         </div>
         <div className="form-group">
-          <label for="senha">Senha</label>
-          <input type="password" className="form-control" id="senha" placeholder="Senha" />
+          <label htmlFor="senha">Senha</label>
+          <input value={this.state.senha} onChange={this.handleSenha} type="password" className="form-control" id="senha" placeholder="Senha" />
         </div>
         <div className="form-group">
-          <label for="login">Login</label>
-          <input type="text" className="form-control" id="login" placeholder="Login" />
+          <label htmlFor="login">Login</label>
+          <input value={this.state.login} onChange={this.handleLogin} type="text" className="form-control" id="login" placeholder="Login" />
         </div>
         <div className="form-group">
-          <label for="descricao">Descrição</label>
-          <input type="text" className="form-control" id="descricao" placeholder="Descrição" />
+          <label htmlFor="descricao">Descrição</label>
+          <input value={this.state.descricao} onChange={this.handleDescricao} type="text" className="form-control" id="descricao" placeholder="Descrição" />
         </div>
         <div className="form-group">
-          <label for="linkImagem">Foto</label>
-          <input type="text" className="form-control" id="linkImagem" placeholder="Foto" />
+          <label htmlFor="linkImagem">Foto</label>
+          <input value={this.state.linkImagem} onChange={this.handleLinkImagem} type="text" className="form-control" id="linkImagem" placeholder="Foto" />
           <p className="help-block">Coloque aqui o link para a sua foto de perfil.</p>
         </div>
         <div className="form-group">
@@ -672,7 +737,7 @@ class MatchList extends Component {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-      body: JSON.stringify({idUsuarioSolicitante: this.props.user, idUsuarioAlvo: e.currentTarget.dataset.id, acao: '0'})
+      body: JSON.stringify({idUsuarioSolicitante: this.props.user.toString(), idUsuarioAlvo: e.currentTarget.dataset.id, acao: '1'})
 		})
     const json = await response.json()
 		this.setState({
@@ -686,7 +751,7 @@ class MatchList extends Component {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-      body: JSON.stringify({idUsuarioSolicitante: this.props.user, idUsuarioAlvo: e.currentTarget.dataset.id, acao: '0'})
+      body: JSON.stringify({idUsuarioSolicitante: this.props.user.toString(), idUsuarioAlvo: e.currentTarget.dataset.id, acao: '0'})
 		})
     const json = await response.json()
 		this.setState({
